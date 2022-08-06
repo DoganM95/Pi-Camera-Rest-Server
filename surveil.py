@@ -18,8 +18,8 @@ template = {
     "securityDefinitions": {"Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}},
     "swagger": "2.0",
     "info": {
-        "title": "Pi Cam",
-        "description": "API to control Xiaomi robot vacuums via http requests.",
+        "title": "Pi Camera Rest Server",
+        "description": "Control Raspberry Pi camera using http requests. Files are saved locally on the SD..",
         "contact": {
             "name": "DoganM95",
             "url": "github.com/DoganM95",
@@ -60,22 +60,14 @@ def post_capture_picture():
         enum: ['2592x1944', '1920x1080', '1296x972', '1296x730', '640x480' ]
         description:
           2592x1944 max 15 fps, 1920x1080 max 30 fps, 1296x972 max 42 fps, 1296x730 max 49 fps, 640x480 max 90 fps
-      - name: iso
-        in: query
-        required: false
-        default: 400
-        schema:
-          type: integer
-        description:
-          The actual value used when iso is explicitly set will be one of the following values (whichever is closest): 100, 200, 320, 400, 500, 640, 800.
       - name: useVideoPort
         in: query
         required: false
-        default: false
+        default: False
         schema:
           type: boolean
         description:
-          Set true to use video port to capture images. QUality is inferior but fps is higher, which results in less blurry images, especially on movement.
+          Set true to use video port to capture images. Quality is inferior but fps is higher, which results in less blurry images, especially on movement.
       - name: brightness
         in: query
         required: false
@@ -87,6 +79,7 @@ def post_capture_picture():
       - name: contrast
         in: query
         required: false
+        default: 0
         schema:
           type: integer
         description:
@@ -94,7 +87,7 @@ def post_capture_picture():
       - name: led
         in: query
         required: false
-        default: true
+        default: True
         schema:
           type: boolean
       - name: fileType
@@ -112,19 +105,17 @@ def post_capture_picture():
     """
 
     resolution = request.args.get("resolution")
-    iso = request.args.get("iso")
     fileType = request.args.get("fileType")
     useVideoPort = request.args.get("useVideoPort")
     led = request.args.get("led")
-    brightness = request.args("brightness")
-    contrast = request.args("contrast")
+    brightness = request.args.get("brightness")
+    contrast = request.args.get("contrast")
 
     try:
         my_file = open("pi_" + str(datetime.now()) + "." + fileType, "wb")
 
         camera = PiCamera()
         camera.resolution = resolution
-        camera.iso = iso
         camera.led = led
         camera.brightness = brightness
         camera.contrast = contrast
@@ -136,7 +127,7 @@ def post_capture_picture():
     except Exception as err:
         my_file.close()
         camera.close()
-        return Response(response="NOK", status=400, mimetype="text/plain")
+        return Response(response=str(err), status=400, mimetype="text/plain")
 
 
 # https://picamera.readthedocs.io/en/release-1.13/fov.html?highlight=resolution#sensor-modes
@@ -161,14 +152,6 @@ def post_record_video():
         default: 30
         schema:
           type: integer
-      - name: iso
-        in: query
-        required: false
-        default: 400
-        schema:
-          type: integer
-        description:
-          The actual value used when iso is explicitly set will be one of the following values (whichever is closest): 100, 200, 320, 400, 500, 640, 800.
       - name: brightness
         in: query
         required: false
@@ -213,12 +196,11 @@ def post_record_video():
 
     resolution = request.args.get("resolution")
     framerate = request.args.get("framerate")
-    iso = request.args.get("iso")
     fileType = request.args.get("fileType")
     led = request.args.get("led")
-    brightness = request.args("brightness")
-    contrast = request.args("contrast")
-    duration = request.args("duration")
+    brightness = request.args.get("brightness")
+    contrast = request.args.get("contrast")
+    duration = request.args.get("duration")
 
     try:
         # Explicitly open a new file called my_image.jpg
@@ -227,7 +209,6 @@ def post_record_video():
         camera = PiCamera()
         camera.resolution = resolution
         camera.framerate = framerate
-        camera.iso = iso
         camera.led = led
         camera.brightness = brightness
         camera.contrast = contrast
@@ -262,10 +243,11 @@ def get_record_video_state():
 
     try:
         camera = PiCamera()
-        state = camera.recording()
+        state = camera.recording
         if state == True:
             return Response(response="Recording", status=200, mimetype="text/plain")
         else:
+            camera.close()
             return Response(response="Not Recording", status=200, mimetype="text/plain")
     except:
         return Response(response="An error occured.", status=400, mimetype="text/plain")
