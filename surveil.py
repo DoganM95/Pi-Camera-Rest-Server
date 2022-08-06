@@ -68,14 +68,6 @@ def post_capture_picture():
           type: boolean
         description:
           Set true to use video port to capture images. Quality is inferior but fps is higher, which results in less blurry images, especially on movement.
-      - name: contrast
-        in: query
-        required: false
-        default: 0
-        schema:
-          type: integer
-        description:
-          Value between -100 and 100.
       - name: led
         in: query
         required: false
@@ -100,7 +92,6 @@ def post_capture_picture():
     fileType = request.args.get("fileType")
     useVideoPort = request.args.get("useVideoPort")
     led = request.args.get("led")
-    contrast = request.args.get("contrast")
 
     try:
         my_file = open("pi_" + str(datetime.now()) + "." + fileType, "wb")
@@ -108,7 +99,6 @@ def post_capture_picture():
         camera = PiCamera()
         camera.resolution = resolution
         camera.led = led
-        camera.contrast = contrast
 
         camera.capture(output=my_file, format=fileType, use_video_port=useVideoPort)
         my_file.close()
@@ -142,13 +132,6 @@ def post_record_video():
         default: 30
         schema:
           type: integer
-      - name: contrast
-        in: query
-        required: false
-        schema:
-          type: integer
-        description:
-          Value between -100 and 100.
       - name: led
         in: query
         required: false
@@ -180,7 +163,6 @@ def post_record_video():
     framerate = request.args.get("framerate")
     fileType = request.args.get("fileType")
     led = request.args.get("led")
-    contrast = request.args.get("contrast")
     duration = request.args.get("duration")
 
     try:
@@ -191,7 +173,6 @@ def post_record_video():
         camera.resolution = resolution
         camera.framerate = framerate
         camera.led = led
-        camera.contrast = contrast
         camera.duration = duration
 
         camera.start_recording(output=my_file, format=fileType)
