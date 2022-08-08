@@ -68,12 +68,6 @@ def post_capture_picture():
           type: boolean
         description:
           Set true to use video port to capture images. Quality is inferior but fps is higher, which results in less blurry images, especially on movement.
-      - name: led
-        in: query
-        required: false
-        default: True
-        schema:
-          type: boolean
       - name: fileType
         in: query
         required: false
@@ -91,19 +85,17 @@ def post_capture_picture():
     resolution = request.args.get("resolution")
     fileType = request.args.get("fileType")
     useVideoPort = request.args.get("useVideoPort")
-    led = request.args.get("led")
 
     try:
         my_file = open("pi_" + str(datetime.now()) + "." + fileType, "wb")
 
         camera = PiCamera()
         camera.resolution = resolution
-        camera.led = led
 
         camera.capture(output=my_file, format=fileType, use_video_port=useVideoPort)
         my_file.close()
         camera.close()
-        return Response(response="OK, " + my_file.name, status=200, mimetype="text/plain")
+        return Response(response=my_file.name, status=200, mimetype="text/plain")
     except Exception as err:
         my_file.close()
         camera.close()
@@ -132,12 +124,6 @@ def post_record_video():
         default: 30
         schema:
           type: integer
-      - name: led
-        in: query
-        required: false
-        default: true
-        schema:
-          type: boolean
       - name: fileType
         in: query
         required: false
@@ -162,7 +148,6 @@ def post_record_video():
     resolution = request.args.get("resolution")
     framerate = request.args.get("framerate")
     fileType = request.args.get("fileType")
-    led = request.args.get("led")
     duration = request.args.get("duration")
 
     try:
@@ -172,7 +157,6 @@ def post_record_video():
         camera = PiCamera()
         camera.resolution = resolution
         camera.framerate = framerate
-        camera.led = led
         camera.duration = duration
 
         camera.start_recording(output=my_file, format=fileType)
