@@ -8,6 +8,7 @@ from flasgger import Swagger
 from types import SimpleNamespace as Namespace
 import json
 from time import sleep
+import os
 
 
 # https://picamera.readthedocs.io/en/release-1.13/index.html
@@ -58,8 +59,6 @@ def post_capture_picture():
         schema:
           type: string
         enum: ['2592x1944', '1920x1080', '1296x972', '1296x730', '640x480' ]
-        description:
-          2592x1944 max 15 fps, 1920x1080 max 30 fps, 1296x972 max 42 fps, 1296x730 max 49 fps, 640x480 max 90 fps
       - name: useVideoPort
         in: query
         required: false
@@ -88,21 +87,27 @@ def post_capture_picture():
 
     try:
         my_file = open("pi_" + str(datetime.now()) + "." + fileType, "wb")
-
         camera = PiCamera()
         camera.resolution = resolution
-
+        resolution = camera.resolution # to know the real used res, in case requested resolution is not available
         camera.capture(output=my_file, format=fileType, use_video_port=useVideoPort)
         my_file.close()
         camera.close()
-        return Response(response=my_file.name, status=200, mimetype="text/plain")
+        pictureSizeInMegaBytes = os.stat(my_file.name).st_size / (1024 * 1024)
+
+        responseObject = {
+          "fileName" : my_file.name,
+          "fileSize" : round(pictureSizeInMegaBytes, 2),
+          "resolution" : resolution
+        }
+
+        return Response(response=json.dumps(responseObject), status=200, mimetype="application/json")
     except Exception as err:
         my_file.close()
         camera.close()
         return Response(response=str(err), status=400, mimetype="text/plain")
 
 
-# https://picamera.readthedocs.io/en/release-1.13/fov.html?highlight=resolution#sensor-modes
 @app.route("/record/video", methods=["POST"])
 def post_record_video():
     """Capture a video
@@ -134,6 +139,7 @@ def post_record_video():
       - name: duration
         in: query
         required: false
+        default: 3600
         schema:
           type: integer
         description:
@@ -156,22 +162,21 @@ def post_record_video():
 
         camera = PiCamera()
         camera.resolution = resolution
-        camera.framerate = framerate
-        camera.duration = duration
+        # camera.framerate = framerate
 
         camera.start_recording(output=my_file, format=fileType)
-        if duration != 0:
+        if int(duration) > 0:
             camera.wait_recording(duration)
             camera.stop_recording()
             my_file.close()
             camera.close()
 
         return Response(response="OK", status=200, mimetype="text/plain")
-    except:
+    except Exception as err:
         camera.stop_recording()
         my_file.close()
         camera.close()
-        return Response(response="NOK", status=400, mimetype="text/plain")
+        return Response(response=str(err), status=400, mimetype="text/plain")
 
 
 @app.route("/status/record/video", methods=["GET"])
